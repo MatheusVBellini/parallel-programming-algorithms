@@ -2,7 +2,7 @@
 #include <stdlib.h>
 #include <semaphore.h>
 #include <pthread.h>
-#include <sys/semaphore.h>
+#include <semaphore.h>
 
 #define QUEUE_SIZE 10
 #define MAX_PRODUCED 15
