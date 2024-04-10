@@ -2,7 +2,9 @@
 #include <stdio.h>
 
 int main() {
-  printf("Hello World\n");
+
+#pragma omp parallel
+  { printf("Hello World\n"); }
 
   return 0;
 }
