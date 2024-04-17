@@ -1,5 +1,5 @@
 # How to Compile
-Each directory in the root directory has its own `Makefile` in it, containg the proper directives for each kind of lib or flag used. To compile using any of the Makefiles use:
+To compile using any of the Makefile use:
 
 ```
 make FILE=<path_to_file>
