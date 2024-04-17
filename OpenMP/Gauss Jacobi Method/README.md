@@ -22,6 +22,17 @@ make build
 ```
 
 Though it has some dependencies, since it runs a formatter and a linter before compilation. 
+For compacting it into a .zip file, use
+
+```
+make zip
+```
+
+To clean up the directory from binaries and unused files, use
+
+```
+make clean
+```
 
 Below is the list of dependencies:
 - gcc
