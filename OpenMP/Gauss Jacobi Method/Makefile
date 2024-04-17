@@ -1,4 +1,4 @@
-FILE ?= default.c
+FILE = 
 OUT = main
 
 all: $(OUT)
