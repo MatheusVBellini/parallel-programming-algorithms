@@ -59,7 +59,7 @@ int main(int argc, char *argv[]) {
   N = atoi(argv[1]);
 
   // DEBUG: convergence_test
-  float **m = (float **)malloc(N *sizeof(float *));
+  float **m = (float **)malloc(N * sizeof(float *));
   if (!m) {
     printf("Failed to allocate memory for the matrix");
   }
