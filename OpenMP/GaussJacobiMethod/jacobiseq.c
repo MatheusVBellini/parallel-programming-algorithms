@@ -13,6 +13,24 @@ typedef struct {
 } LinSys;
 
 /**
+ * Show linear system on screen
+ *
+ * @param linsys LinSys* - linear system to be showed
+ */
+void print_linsys(LinSys* linsys) {
+  printf("\nA:\n");
+  for (int i = 0; i < N; i++) {
+    for (int j = 0; j < N; j++) {
+      printf("%f ", linsys->A[i][j]);
+    }
+    printf("\n");
+  }
+  printf("\nb:\n");
+  for (int i = 0; i < N; i++) printf("%f ", linsys->b[i]);
+  printf("\n");
+}
+
+/**
  * Test if matrix converges in the Jacobi-Gauss method
  *
  * @param matrix float** - matrix to be checked
@@ -69,11 +87,9 @@ float **allocate_matrix() {
 /**
  * Generate a linear system that satisfies the convergence test
  *
- * @return convergent linear system
+ * @param linsys LinSys* - recipient of the system
  */
 void gen_linear_system(LinSys *linsys) {
-  linsys->A = allocate_matrix();
-  linsys->b = (float *)malloc(sizeof(float)*N);
 
   // value generation
   do {
@@ -84,6 +100,22 @@ void gen_linear_system(LinSys *linsys) {
       }
     }
   } while (!convergence_test(linsys->A));
+}
+
+/**
+ * Normalize the system to apply the algorithm
+ *
+ * @param linsys LinSys* - original linear system
+ * @param normsys LinSys* - recipient of the normalized system
+ */
+void normalize_system(LinSys* linsys, LinSys* normsys) {
+  for (int i = 0; i < N; i++) {
+    for (int j = 0; j < N; j++) {
+      normsys->A[i][j] = -linsys->A[i][j]/linsys->A[i][i];
+    }
+    normsys->A[i][i] = 0;
+    normsys->b[i] = linsys->b[i]/linsys->A[i][i];
+  }
 }
 
 int main(int argc, char *argv[]) {
@@ -108,20 +140,25 @@ int main(int argc, char *argv[]) {
 
   // DEBUG: gen_linear_system
   LinSys linsys;
+  linsys.A = allocate_matrix();
+  linsys.b = (float *)malloc(sizeof(float)*N);
+
   gen_linear_system(&linsys);
   char ret = convergence_test(linsys.A);
 
-  printf("\nA:\n");
-  for (int i = 0; i < N; i++) {
-    for (int j = 0; j < N; j++) {
-      printf("%f ", linsys.A[i][j]);
-    }
-    printf("\n");
-  }
-  printf("b:\n");
-  for (int i = 0; i < N; i++) printf("%f ", linsys.b[i]);
-  printf("\n\n%d\n", ret);
+  print_linsys(&linsys);
+  printf("\n%d\n", ret);
   // end of gen_linear_system debug
+
+
+  // DEBUG: normalize_system
+  LinSys normsys;
+  normsys.A = allocate_matrix();
+  normsys.b = (float *)malloc(sizeof(float)*N);
+
+  normalize_system(&linsys,&normsys);
+  print_linsys(&normsys);
+  // end of normalize_system debug
 
   return 0;
 }
