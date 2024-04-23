@@ -3,13 +3,15 @@
 #include <stdlib.h>
 
 #define CLI_ARG_NUM 3
+#define RAND_LIMIT 1000
 
 int N = 0;
 
 /**
  * Test if matrix converges in the Jacobi-Gauss method
  *
- * @param matrix float**
+ * @param matrix float** - matrix to be checked
+ * @return 0 if doesn't converge, not 0 if converges
  */
 char convergence_test(float **matrix) {
   /* lines criterium
@@ -39,6 +41,37 @@ char convergence_test(float **matrix) {
   return max < 1;
 }
 
+/**
+ * Generate a matrix that satisfies the convergence test
+ *
+ * @return matrix filled with randomly generated values that pass the
+ * convergence test
+ */
+float **gen_matrix() {
+  // memory allocation
+  float **m = (float **)malloc(N * sizeof(float *));
+  if (!m) {
+    printf("Failed to allocate memory for the matrix");
+  }
+  for (int i = 0; i < N; i++) {
+    m[i] = (float *)malloc(N * sizeof(float));
+    if (!m[i]) {
+      printf("Failed to allocate memory for the matrix");
+    }
+  }
+
+  // value generation
+  do {
+    for (int i = 0; i < N; i++) {
+      for (int j = 0; j < N; j++) { // random fill up
+        m[i][j] = RAND_LIMIT * (rand() / (float)RAND_MAX);
+      }
+    }
+  } while (!convergence_test(m));
+
+  return m;
+}
+
 int main(int argc, char *argv[]) {
 
   // dev info
@@ -57,20 +90,18 @@ int main(int argc, char *argv[]) {
 
   // using arguments
   N = atoi(argv[1]);
+  srand(atoi(argv[3]));
 
-  // DEBUG: convergence_test
-  float **m = (float **)malloc(N * sizeof(float *));
-  if (!m) {
-    printf("Failed to allocate memory for the matrix");
-  }
-  for (int i = 0; i < N; i++) {
-    m[i] = (float *)malloc(N * sizeof(float));
-    if (!m[i]) {
-      printf("Failed to allocate memory for the matrix");
-    }
-  }
+  // DEBUG: gen_matrix
+  float **m = gen_matrix();
   char ret = convergence_test(m);
-  printf("%d\n", ret);
+  for (int i = 0; i < N; i++) {
+    for (int j = 0; j < N; j++) {
+      printf("%f ", m[i][j]);
+    }
+    printf("\n");
+  }
+  printf("\n%d\n", ret);
 
   return 0;
 }
