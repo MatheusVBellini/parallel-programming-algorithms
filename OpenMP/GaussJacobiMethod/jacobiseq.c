@@ -31,6 +31,26 @@ void print_linsys(LinSys* linsys) {
 }
 
 /**
+ * Allocate matrix of order N
+ *
+ * @return pointer to allocated matrix
+ */
+float **allocate_matrix() {
+  float **m = (float **)malloc(N * sizeof(float *));
+  if (!m) {
+    printf("Failed to allocate memory for the matrix");
+  }
+  for (int i = 0; i < N; i++) {
+    m[i] = (float *)malloc(N * sizeof(float));
+    if (!m[i]) {
+      printf("Failed to allocate memory for the matrix");
+    }
+  }
+
+  return m;
+}
+
+/**
  * Test if matrix converges in the Jacobi-Gauss method
  *
  * @param matrix float** - matrix to be checked
@@ -64,25 +84,6 @@ char convergence_test(float **matrix) {
   return max < 1;
 }
 
-/**
- * Allocate matrix of order N
- *
- * @return pointer to allocated matrix
- */
-float **allocate_matrix() {
-  float **m = (float **)malloc(N * sizeof(float *));
-  if (!m) {
-    printf("Failed to allocate memory for the matrix");
-  }
-  for (int i = 0; i < N; i++) {
-    m[i] = (float *)malloc(N * sizeof(float));
-    if (!m[i]) {
-      printf("Failed to allocate memory for the matrix");
-    }
-  }
-
-  return m;
-}
 
 /**
  * Generate a linear system that satisfies the convergence test
@@ -116,6 +117,41 @@ void normalize_system(LinSys* linsys, LinSys* normsys) {
     normsys->A[i][i] = 0;
     normsys->b[i] = linsys->b[i]/linsys->A[i][i];
   }
+}
+
+/**
+ * Calculate error function
+ *
+ * @param x0 float* - original vector
+ * @param x1 float* - post-iteration vector
+ * @return error value
+ */
+float calc_err(float* x0, float* x1) {
+  float max_diff = -1;
+  float max_abs = -1;
+  for (int i = 0; i < N; i++) {
+    if (fabs(x1[i]) > max_abs) max_abs = fabs(x1[i]);
+    if (fabs(x1[i] - x0[i]) > max_diff) max_diff = fabs(x1[i] - x0[i]);
+  }
+
+  return max_diff / max_abs;
+}
+
+/**
+ * Solve the linear system
+ *
+ * @param normsys LinSys* - normalized linear system
+ * @param e float - result precision
+ * @return result vector
+ */
+float* solve(LinSys* normsys, float e) {
+  float *res = (float*)malloc(sizeof(float)*N);
+  
+  //do {
+
+  //} while (calc_err(res,normsys->b) > e);
+
+  return res;
 }
 
 int main(int argc, char *argv[]) {
