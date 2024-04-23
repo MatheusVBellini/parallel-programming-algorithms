@@ -32,7 +32,7 @@ char convergence_test(float **matrix) {
         continue;
       coeficients[i] += fabs(matrix[i][j]);
     }
-    coeficients[i] /= fabs(matrix[i][i]);
+    coeficients[i] /= (float)fabs(matrix[i][i]);
 
     if (coeficients[i] > max)
       max = coeficients[i];
@@ -42,13 +42,11 @@ char convergence_test(float **matrix) {
 }
 
 /**
- * Generate a matrix that satisfies the convergence test
+ * Allocate matrix of order N
  *
- * @return matrix filled with randomly generated values that pass the
- * convergence test
+ * @return pointer to allocated matrix
  */
-float **gen_matrix() {
-  // memory allocation
+float **allocate_matrix() {
   float **m = (float **)malloc(N * sizeof(float *));
   if (!m) {
     printf("Failed to allocate memory for the matrix");
@@ -59,6 +57,18 @@ float **gen_matrix() {
       printf("Failed to allocate memory for the matrix");
     }
   }
+
+  return m;
+}
+
+/**
+ * Generate a matrix that satisfies the convergence test
+ *
+ * @return pointer to matrix filled with randomly generated values that pass the
+ * convergence test
+ */
+float **gen_matrix() {
+  float **m = allocate_matrix();
 
   // value generation
   do {
