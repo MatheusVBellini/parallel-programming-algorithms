@@ -141,15 +141,25 @@ float calc_err(float* x0, float* x1) {
  * Solve the linear system
  *
  * @param normsys LinSys* - normalized linear system
+ * @param x float* - vector of initial values
  * @param e float - result precision
  * @return result vector
  */
-float* solve(LinSys* normsys, float e) {
+float* solve(LinSys* normsys, float* x, float e) {
   float *res = (float*)malloc(sizeof(float)*N);
-  
-  //do {
 
-  //} while (calc_err(res,normsys->b) > e);
+  // fill up for first interaction
+  for (int i = 0; i < N; i++) res[i] = x[i];
+
+  do {
+    for (int i = 0; i < N; i++) x[i] = res[i];
+    for(int i = 0; i < N; i++) {
+      res[i] = 0;
+      for (int j = 0; j < N; j++) {
+        res[i] += normsys->A[i][j] * x[j] + normsys->b[i];
+      }
+    }
+  } while (calc_err(x,res) > e);
 
   return res;
 }
@@ -195,6 +205,22 @@ int main(int argc, char *argv[]) {
   normalize_system(&linsys,&normsys);
   print_linsys(&normsys);
   // end of normalize_system debug
+  
+
+  // DEBUG: solve
+  float* x = (float*)malloc(N*sizeof(float));
+  for (int i = 0; i < N; i++) x[i] = (rand() / (float)RAND_MAX);
+  float* res = solve(&normsys, x, 0.0001);
+
+  printf("\nx0:\n");
+  for(int i = 0; i < N; i++) printf("%f ", x[i]);
+  printf("\n\nResult:\n");
+  for(int i = 0; i < N; i++) printf("%f ", res[i]);
+  printf("\n");
+  // end of solve debug
+
+
+  // free allocated memory
 
   return 0;
 }
