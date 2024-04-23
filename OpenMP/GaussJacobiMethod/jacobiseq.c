@@ -6,6 +6,11 @@
 #define RAND_LIMIT 1000
 
 int N = 0;
+typedef struct {
+  // Ax = b
+  float **A;
+  float *b;
+} LinSys;
 
 /**
  * Test if matrix converges in the Jacobi-Gauss method
@@ -62,24 +67,23 @@ float **allocate_matrix() {
 }
 
 /**
- * Generate a matrix that satisfies the convergence test
+ * Generate a linear system that satisfies the convergence test
  *
- * @return pointer to matrix filled with randomly generated values that pass the
- * convergence test
+ * @return convergent linear system
  */
-float **gen_matrix() {
-  float **m = allocate_matrix();
+void gen_linear_system(LinSys *linsys) {
+  linsys->A = allocate_matrix();
+  linsys->b = (float *)malloc(sizeof(float)*N);
 
   // value generation
   do {
     for (int i = 0; i < N; i++) {
+      linsys->b[i] = RAND_LIMIT * (rand() / (float)RAND_MAX);
       for (int j = 0; j < N; j++) { // random fill up
-        m[i][j] = RAND_LIMIT * (rand() / (float)RAND_MAX);
+        linsys->A[i][j] = RAND_LIMIT * (rand() / (float)RAND_MAX);
       }
     }
-  } while (!convergence_test(m));
-
-  return m;
+  } while (!convergence_test(linsys->A));
 }
 
 int main(int argc, char *argv[]) {
@@ -102,16 +106,22 @@ int main(int argc, char *argv[]) {
   N = atoi(argv[1]);
   srand(atoi(argv[3]));
 
-  // DEBUG: gen_matrix
-  float **m = gen_matrix();
-  char ret = convergence_test(m);
+  // DEBUG: gen_linear_system
+  LinSys linsys;
+  gen_linear_system(&linsys);
+  char ret = convergence_test(linsys.A);
+
+  printf("\nA:\n");
   for (int i = 0; i < N; i++) {
     for (int j = 0; j < N; j++) {
-      printf("%f ", m[i][j]);
+      printf("%f ", linsys.A[i][j]);
     }
     printf("\n");
   }
-  printf("\n%d\n", ret);
+  printf("b:\n");
+  for (int i = 0; i < N; i++) printf("%f ", linsys.b[i]);
+  printf("\n\n%d\n", ret);
+  // end of gen_linear_system debug
 
   return 0;
 }
