@@ -7,10 +7,10 @@ OUT_SEQ = jacobiseq
 IN = $(IN_PAR) $(IN_SEQ)
 OUT = $(OUT_PAR) $(OUT_SEQ)
 
-ZIP= ParallelGaussJacobi.zip
+ZIP = ParallelGaussJacobi.zip
 
 # compilation flags
-FLAGS= -Wall -Wextra -pedantic
+FLAGS = -Wall -Wextra -pedantic -O3
 
 all: seq par
 
