@@ -34,8 +34,14 @@ To clean up the directory from binaries and unused files, use
 make clean
 ```
 
+To change the compiler being used in the make statements, use
+
+```
+make <statement> COMPILER=<custom compiler>
+```
+
 Below is the list of dependencies:
-- gcc
+- gcc            (replaceable with no guarantee)
 - clang-format   (dev)
 - cppcheck       (dev)
 
