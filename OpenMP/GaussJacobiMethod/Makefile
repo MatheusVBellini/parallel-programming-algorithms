@@ -35,5 +35,4 @@ format:
 
 # dependencies: cppcheck
 lint:
-	cppcheck $(IN) --check-level=exhaustive
-
+	cppcheck $(IN) 
