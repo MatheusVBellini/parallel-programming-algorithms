@@ -37,7 +37,7 @@ data_t random_number() {
  *
  * @param linsys LinSys* - linear system to be showed
  */
-void print_linsys(LinSys *linsys) {
+void linsys_print(LinSys *linsys) {
   printf("\nA:\n");
   for (int i = 0; i < N; i++) {
     for (int j = 0; j < N; j++) {
@@ -50,6 +50,20 @@ void print_linsys(LinSys *linsys) {
     printf("%.5lf ", linsys->b[i]);
   printf("\n");
 }
+
+/**
+ * Free allocated memory in a LinSys instance
+ *
+ * @param linsys LinSys* - struct to be deallocated
+ */
+void linsys_free(LinSys* linsys) {
+  if (linsys->A) {
+    for (int i = 0; i < N; i++)
+    { free(linsys->A[i]); }
+    free(linsys->A);
+  }
+  if (linsys->b) free(linsys->b);
+} 
 
 /**
  * Allocate matrix of order N
@@ -190,6 +204,10 @@ data_t calc_err(data_t *x0, data_t *x1) {
  */
 data_t *solve(LinSys *normsys, data_t *x, data_t e) {
   data_t *res = (data_t *)malloc(sizeof(data_t) * N);
+  if (!res) {
+    printf("Failed to allocate memory\n");
+    exit(1);
+  }
 
   // fill up for first interaction
   for (int i = 0; i < N; i++)
@@ -199,13 +217,13 @@ data_t *solve(LinSys *normsys, data_t *x, data_t e) {
     for (int i = 0; i < N; i++)
       x[i] = res[i];
     for (int i = 0; i < N; i++) {
-      res[i] = 0;
+      res[i] = normsys->b[i];
       for (int j = 0; j < N; j++) {
-        res[i] += normsys->A[i][j] * x[j] + normsys->b[i];
+        res[i] += normsys->A[i][j] * x[j];
       }
     }
   } while (calc_err(x, res) > e);
-
+  
   return res;
 }
 
@@ -234,7 +252,7 @@ int main(int argc, char *argv[]) {
   gen_linear_system(&linsys);
   char ret = convergence_test(linsys.A);
 
-  print_linsys(&linsys);
+  linsys_print(&linsys);
   printf("\n%d\n", ret);
   // end of gen_linear_system debug
 
@@ -244,18 +262,21 @@ int main(int argc, char *argv[]) {
   normsys.b = (data_t *)malloc(sizeof(data_t) * N);
 
   normalize_system(&linsys, &normsys);
-  print_linsys(&normsys);
+  linsys_print(&normsys);
   // end of normalize_system debug
 
   // DEBUG: solve
   data_t *x = (data_t *)malloc(N * sizeof(data_t));
   for (int i = 0; i < N; i++)
     x[i] = (rand() / (data_t)RAND_MAX);
-  data_t *res = solve(&normsys, x, 0.0001);
 
   printf("\nx0:\n");
   for (int i = 0; i < N; i++)
     printf("%f ", x[i]);
+  printf("\n\n");
+
+  data_t *res = solve(&normsys, x, 0.00001);
+
   printf("\n\nResult:\n");
   for (int i = 0; i < N; i++)
     printf("%f ", res[i]);
@@ -263,6 +284,10 @@ int main(int argc, char *argv[]) {
   // end of solve debug
 
   // free allocated memory
+  free(x);
+  free(res);
+  linsys_free(&linsys);
+  linsys_free(&normsys);
 
   return 0;
 }
