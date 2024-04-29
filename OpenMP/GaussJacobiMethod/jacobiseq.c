@@ -1,6 +1,7 @@
 #include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <stdbool.h>
 
 #define CLI_ARG_NUM 3
 #define RAND_LIMIT 1000
@@ -35,7 +36,7 @@ data_t random_number() {
 /**
  * Show linear system on screen
  *
- * @param linsys LinSys* - linear system to be showed
+ * @param linsys Linear system to be showed
  */
 void linsys_print(LinSys *linsys) {
   printf("\nA:\n");
@@ -54,7 +55,7 @@ void linsys_print(LinSys *linsys) {
 /**
  * Free allocated memory in a LinSys instance
  *
- * @param linsys LinSys* - struct to be deallocated
+ * @param linsys Struct to be deallocated
  */
 void linsys_free(LinSys* linsys) {
   if (linsys->A) {
@@ -88,10 +89,10 @@ data_t **allocate_matrix() {
 /**
  * Test if matrix converges in the Jacobi-Gauss method
  *
- * @param matrix data_t** - matrix to be checked
+ * @param matrix Matrix to be checked
  * @return 0 if doesn't converge, not 0 if converges
  */
-char convergence_test(data_t **matrix) {
+bool convergence_test(data_t **matrix) {
   /* lines criterium
    *
    * a_k = ( \sum_{j=1 && j!=k}^{n} |a_{ik}| ) / |a_{kk}|
@@ -121,7 +122,7 @@ char convergence_test(data_t **matrix) {
 /**
  * Generate a linear system that satisfies the convergence test
  *
- * @param linsys LinSys* - recipient of the system
+ * @param linsys Recipient of the system
  */
 void gen_linear_system(LinSys *linsys) {
   linsys->A = allocate_matrix();
@@ -161,8 +162,8 @@ void gen_linear_system(LinSys *linsys) {
 /**
  * Normalize the system to apply the algorithm
  *
- * @param linsys LinSys* - original linear system
- * @param normsys LinSys* - recipient of the normalized system
+ * @param linsys Original linear system
+ * @param normsys Recipient of the normalized system
  */
 void normalize_system(LinSys *linsys, LinSys *normsys) {
   for (int i = 0; i < N; i++) {
@@ -177,8 +178,8 @@ void normalize_system(LinSys *linsys, LinSys *normsys) {
 /**
  * Calculate error function
  *
- * @param x0 data_t* - original vector
- * @param x1 data_t* - post-iteration vector
+ * @param x0 Original vector
+ * @param x1 Post-iteration vector
  * @return error value
  */
 data_t calc_err(data_t *x0, data_t *x1) {
@@ -197,9 +198,9 @@ data_t calc_err(data_t *x0, data_t *x1) {
 /**
  * Solve the linear system
  *
- * @param normsys LinSys* - normalized linear system
- * @param x data_t* - vector of initial values
- * @param e data_t - result precision
+ * @param normsys Normalized linear system
+ * @param x Vector of initial values
+ * @param e Result precision
  * @return result vector
  */
 data_t *solve(LinSys *normsys, data_t *x, data_t e) {
