@@ -1,7 +1,7 @@
 #include <math.h>
+#include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <stdbool.h>
 
 #define CLI_ARG_NUM 3
 #define RAND_LIMIT 1000
@@ -57,14 +57,16 @@ void linsys_print(LinSys *linsys) {
  *
  * @param linsys Struct to be deallocated
  */
-void linsys_free(LinSys* linsys) {
+void linsys_free(LinSys *linsys) {
   if (linsys->A) {
-    for (int i = 0; i < N; i++)
-    { free(linsys->A[i]); }
+    for (int i = 0; i < N; i++) {
+      free(linsys->A[i]);
+    }
     free(linsys->A);
   }
-  if (linsys->b) free(linsys->b);
-} 
+  if (linsys->b)
+    free(linsys->b);
+}
 
 /**
  * Allocate matrix of order N
@@ -224,7 +226,7 @@ data_t *solve(LinSys *normsys, data_t *x, data_t e) {
       }
     }
   } while (calc_err(x, res) > e);
-  
+
   return res;
 }
 
