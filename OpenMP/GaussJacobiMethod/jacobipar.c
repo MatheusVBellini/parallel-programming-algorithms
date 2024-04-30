@@ -253,6 +253,7 @@ data_t *solve(LinSys *normsys, data_t *x, data_t e) {
 }
 
 int main(int argc, char *argv[]) {
+  omp_set_nested(1);
 
   // dev info
   printf("No de Argumentos: %d\n", argc);
