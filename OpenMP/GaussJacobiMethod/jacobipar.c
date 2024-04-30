@@ -138,34 +138,36 @@ void gen_linear_system(LinSys *linsys) {
   linsys->b = (data_t *)malloc(sizeof(data_t) * N);
 
   // value generation
-  do {
-    for (int i = 0; i < N; i++) {
-      // filling up b
-      linsys->b[i] = random_number();
+  for (int i = 0; i < N; i++) {
+    // filling up b
+    linsys->b[i] = random_number();
 
-      // filling up A
-      data_t row_sum = 0;
-      for (int j = 0; j < N; j++) {
-        linsys->A[i][j] = random_number();
+    // filling up A
+    data_t row_sum = 0;
+    for (int j = 0; j < N; j++) {
+      linsys->A[i][j] = random_number();
 
-        // row_sum doesn't include the diagonal element
-        if (i == j)
-          continue;
-        row_sum += fabs(linsys->A[i][j]);
-      }
-
-      // turning A into a diagonally dominant matrix
-      // F = row_sum / |a_ii|
-      // for all j, a_ij = a_ij / F
-      // hereby, |a_ii| > row_sum for all i
-      data_t F = ((row_sum + fabs(random_number())) / fabs(linsys->A[i][i]));
-      for (int j = 0; j < N; j++) {
-        if (i == j)
-          continue;
-        linsys->A[i][j] /= F;
-      }
+      // row_sum doesn't include the diagonal element
+      if (i == j)
+        continue;
+      row_sum += fabs(linsys->A[i][j]);
     }
-  } while (!convergence_test(linsys->A));
+
+    // turning A into a diagonally dominant matrix
+    // F = row_sum / |a_ii|
+    // for all j, a_ij = a_ij / F
+    // hereby, |a_ii| > row_sum for all i
+    data_t F = ((row_sum + fabs(random_number())) / fabs(linsys->A[i][i]));
+    for (int j = 0; j < N; j++) {
+      if (i == j)
+        continue;
+      linsys->A[i][j] /= F;
+    }
+  }
+
+  if (!convergence_test(linsys->A)) {
+    printf("Error generating convergent linear system!\n");
+  }
 }
 
 /**
@@ -177,22 +179,21 @@ void gen_linear_system(LinSys *linsys) {
 void normalize_system(LinSys *linsys, LinSys *normsys) {
   int i = 0, j = 0;
 
-  #pragma omp parallel num_threads(T) shared(linsys, normsys) private(i, j)
+#pragma omp parallel num_threads(T) shared(linsys, normsys) private(i, j)
   {
 
-    #pragma omp for simd collapse(2)
+#pragma omp for simd collapse(2)
     for (i = 0; i < N; i++) {
       for (j = 0; j < N; j++) {
         normsys->A[i][j] = -linsys->A[i][j] / linsys->A[i][i];
       }
     }
-    
-    #pragma omp for simd linear(i:1)
+
+#pragma omp for simd linear(i : 1)
     for (i = 0; i < N; i++) {
       normsys->A[i][i] = 0;
       normsys->b[i] = linsys->b[i] / linsys->A[i][i];
     }
-
   }
 }
 
