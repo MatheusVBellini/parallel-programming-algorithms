@@ -195,7 +195,7 @@ data_t calc_err(data_t *x0, data_t *x1) {
     if (fabs(x1[i] - x0[i]) > max_diff)
       max_diff = fabs(x1[i] - x0[i]);
   }
-
+  
   return max_diff / max_abs;
 }
 

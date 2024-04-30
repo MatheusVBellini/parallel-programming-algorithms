@@ -207,6 +207,8 @@ void normalize_system(LinSys *linsys, LinSys *normsys) {
 data_t calc_err(data_t *x0, data_t *x1) {
   data_t max_diff = -1;
   data_t max_abs = -1;
+
+#pragma omp parallel for num_threads(T) reduction(max : max_abs, max_diff)
   for (int i = 0; i < N; i++) {
     if (fabs(x1[i]) > max_abs)
       max_abs = fabs(x1[i]);
