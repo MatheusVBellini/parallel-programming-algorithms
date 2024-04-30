@@ -175,12 +175,24 @@ void gen_linear_system(LinSys *linsys) {
  * @param normsys Recipient of the normalized system
  */
 void normalize_system(LinSys *linsys, LinSys *normsys) {
-  for (int i = 0; i < N; i++) {
-    for (int j = 0; j < N; j++) {
-      normsys->A[i][j] = -linsys->A[i][j] / linsys->A[i][i];
+  int i = 0, j = 0;
+
+  #pragma omp parallel num_threads(T) shared(linsys, normsys) private(i, j)
+  {
+
+    #pragma omp for simd collapse(2)
+    for (i = 0; i < N; i++) {
+      for (j = 0; j < N; j++) {
+        normsys->A[i][j] = -linsys->A[i][j] / linsys->A[i][i];
+      }
     }
-    normsys->A[i][i] = 0;
-    normsys->b[i] = linsys->b[i] / linsys->A[i][i];
+    
+    #pragma omp for simd linear(i:1)
+    for (i = 0; i < N; i++) {
+      normsys->A[i][i] = 0;
+      normsys->b[i] = linsys->b[i] / linsys->A[i][i];
+    }
+
   }
 }
 
