@@ -47,12 +47,8 @@ void linsys_print(LinSys *linsys) {
     for (int j = 0; j < N; j++) {
       tmp = linsys->A[i][j];
       if (j == 0) {
-        if (tmp < 0)
-          printf("%8.3lf*x%d", tmp, j);
-        else
-          printf(" %7.3lf*x%d", tmp, j);
-      }
-      if (tmp < 0)
+        printf("%8.3lf*x%d", tmp, j);
+      } else if (tmp < 0)
         printf(" - %7.3lf*x%d", fabs(tmp), j);
       else
         printf(" + %7.3lf*x%d", tmp, j);
