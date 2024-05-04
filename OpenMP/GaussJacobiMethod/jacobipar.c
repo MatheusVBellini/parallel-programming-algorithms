@@ -61,6 +61,7 @@ void linsys_print(LinSys *linsys) {
  */
 void linsys_free(LinSys *linsys) {
   if (linsys->A) {
+    #pragma omp parallel for simd num_threads(T) shared(linsys)
     for (int i = 0; i < N; i++) {
       free(linsys->A[i]);
     }
@@ -80,6 +81,8 @@ data_t **allocate_matrix(void) {
   if (!m) {
     printf("Failed to allocate memory for the matrix");
   }
+
+  #pragma omp parallel for num_threads(T) shared(m)
   for (int i = 0; i < N; i++) {
     m[i] = (data_t *)malloc(N * sizeof(data_t));
     if (!m[i]) {
@@ -110,13 +113,16 @@ bool convergence_test(data_t **matrix) {
 
   #pragma omp parallel private(i, j) shared(coeficients) num_threads(T)
   {
-    #pragma omp for simd linear(i : 1) linear(j : 1)
+    #pragma omp for simd linear(i : 1)
+    for (int i = 0; i < N; i++) {
+      coeficients[i] = -fabs(matrix[i][i]/(data_t)matrix[i][i]);
+    }
+
+    #pragma omp for simd collapse(2) reduction(+: coeficients[:N])
     for (i = 0; i < N; i++) {
-      coeficients[i] = -fabs(matrix[i][i]);
       for (j = 0; j < N; j++) {
-        coeficients[i] += fabs(matrix[i][j]);
+        coeficients[i] += fabs(matrix[i][j]/(data_t)matrix[i][i]);
       }
-      coeficients[i] /= (data_t)fabs(matrix[i][i]);
     }
 
     #pragma omp for reduction(max : max)
