@@ -40,16 +40,29 @@ data_t random_number(void) {
  * @param linsys Linear system to be showed
  */
 void linsys_print(LinSys *linsys) {
-  printf("\nA:\n");
+  data_t tmp = 0;
+  printf("\t[Linear System]\n");
   for (int i = 0; i < N; i++) {
+    printf("[%d]\t", i);
     for (int j = 0; j < N; j++) {
-      printf("%.5lf ", linsys->A[i][j]);
+      tmp = linsys->A[i][j];
+      if (j == 0) {
+        if (tmp < 0)
+          printf("%8.3lf*x%d", tmp, j);
+        else
+          printf(" %7.3lf*x%d", tmp, j);
+      }
+      if (tmp < 0)
+        printf(" - %7.3lf*x%d", fabs(tmp), j);
+      else
+        printf(" + %7.3lf*x%d", tmp, j);
     }
-    printf("\n");
+    tmp = linsys->b[i];
+    if (tmp < 0)
+      printf(" = %7.3lf\n", linsys->b[i]);
+    else
+      printf(" =  %7.3lf\n", linsys->b[i]);
   }
-  printf("\nb:\n");
-  for (int i = 0; i < N; i++)
-    printf("%.5lf ", linsys->b[i]);
   printf("\n");
 }
 
