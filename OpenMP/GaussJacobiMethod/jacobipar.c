@@ -1,4 +1,5 @@
 #include <math.h>
+#include <omp.h>
 #include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -30,7 +31,7 @@ typedef struct {
  *
  * @return random number
  */
-data_t random_number() {
+data_t random_number(void) {
   return (data_t)((rand() / (0.5 * RAND_MAX) - 1.0) * RAND_LIMIT);
 }
 
@@ -74,7 +75,7 @@ void linsys_free(LinSys *linsys) {
  *
  * @return pointer to allocated matrix
  */
-data_t **allocate_matrix() {
+data_t **allocate_matrix(void) {
   data_t **m = (data_t **)malloc(N * sizeof(data_t *));
   if (!m) {
     printf("Failed to allocate memory for the matrix");
@@ -253,7 +254,7 @@ data_t *solve(LinSys *normsys, data_t *x, data_t e) {
 }
 
 int main(int argc, char *argv[]) {
-  omp_set_nested(1);
+  omp_set_max_active_levels(2); // enable 2 level nesting
 
   // dev info
   printf("No de Argumentos: %d\n", argc);
@@ -295,7 +296,7 @@ int main(int argc, char *argv[]) {
   // DEBUG: solve
   data_t *x = (data_t *)malloc(N * sizeof(data_t));
   for (int i = 0; i < N; i++)
-    x[i] = (rand() / (data_t)RAND_MAX);
+    x[i] = normsys.b[i];
 
   printf("\nx0:\n");
   for (int i = 0; i < N; i++)
