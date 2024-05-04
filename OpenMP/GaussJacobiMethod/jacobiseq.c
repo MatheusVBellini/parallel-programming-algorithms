@@ -242,11 +242,6 @@ data_t *solve(LinSys *normsys, data_t *x, data_t e) {
 
 int main(int argc, char *argv[]) {
 
-  // dev info
-  printf("No de Argumentos: %d\n", argc);
-  for (int i = 0; i < argc; i++)
-    printf("Argumentos: %s\n", argv[i]);
-
   // argument check
   if ((argc - 1) != CLI_ARG_NUM) {
     printf("\nUsage: jacobiseq <N> <T> <seed>\n\n");
@@ -260,41 +255,26 @@ int main(int argc, char *argv[]) {
   N = atoi(argv[1]);
   srand(atoi(argv[3]));
 
-  // DEBUG: gen_linear_system
+  // generate linear system
   LinSys linsys;
   gen_linear_system(&linsys);
-  char ret = convergence_test(linsys.A);
-
   linsys_print(&linsys);
-  printf("\n%d\n", ret);
-  // end of gen_linear_system debug
 
-  // DEBUG: normalize_system
+  // normalize system
   LinSys normsys;
   normsys.A = allocate_matrix();
   normsys.b = (data_t *)malloc(sizeof(data_t) * N);
-
   normalize_system(&linsys, &normsys);
-  linsys_print(&normsys);
-  // end of normalize_system debug
 
-  // DEBUG: solve
+  // solve system
   data_t *x = (data_t *)malloc(N * sizeof(data_t));
-  for (int i = 0; i < N; i++)
-    x[i] = normsys.b[i];
+  memcpy(x, normsys.b, N * sizeof(data_t)); // initial bet for x
 
-  printf("\nx0:\n");
-  for (int i = 0; i < N; i++)
-    printf("%f ", x[i]);
-  printf("\n\n");
+  data_t *res = solve(&normsys, x, 0.001);
 
-  data_t *res = solve(&normsys, x, 0.00001);
-
-  printf("\n\nResult:\n");
+  printf("\t[Solution]\n");
   for (int i = 0; i < N; i++)
-    printf("%f ", res[i]);
-  printf("\n");
-  // end of solve debug
+    printf("\tx%d = %7.3lf\n", i, res[i]);
 
   // free allocated memory
   free(x);
