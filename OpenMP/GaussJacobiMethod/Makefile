@@ -31,7 +31,7 @@ par:
 
 # dependecies: clang-format
 format:
-	clang-format -i $(IN)
+	clang-format -i jacobiseq.c
 
 # dependencies: cppcheck
 lint:

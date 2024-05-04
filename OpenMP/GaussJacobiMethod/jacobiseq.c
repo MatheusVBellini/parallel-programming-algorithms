@@ -2,6 +2,7 @@
 #include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 
 #define CLI_ARG_NUM 3
 #define RAND_LIMIT 1000
@@ -215,14 +216,12 @@ data_t *solve(LinSys *normsys, data_t *x, data_t e) {
   }
 
   // fill up for first interaction
-  for (int i = 0; i < N; i++)
-    res[i] = x[i];
+  memcpy(res, x, N * sizeof(data_t));
 
   do {
-    for (int i = 0; i < N; i++)
-      x[i] = res[i];
+    memcpy(x, res, N * sizeof(data_t));
+    memcpy(res, normsys->b, N * sizeof(data_t));
     for (int i = 0; i < N; i++) {
-      res[i] = normsys->b[i];
       for (int j = 0; j < N; j++) {
         res[i] += normsys->A[i][j] * x[j];
       }

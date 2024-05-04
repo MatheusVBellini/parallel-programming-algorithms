@@ -108,9 +108,9 @@ bool convergence_test(data_t **matrix) {
   data_t coeficients[N];
   int i = 0, j = 0;
 
-#pragma omp parallel private(i, j) shared(coeficients) num_threads(T)
+  #pragma omp parallel private(i, j) shared(coeficients) num_threads(T)
   {
-#pragma omp for simd linear(i : 1) linear(j : 1)
+    #pragma omp for simd linear(i : 1) linear(j : 1)
     for (i = 0; i < N; i++) {
       coeficients[i] = -fabs(matrix[i][i]);
       for (j = 0; j < N; j++) {
@@ -119,7 +119,7 @@ bool convergence_test(data_t **matrix) {
       coeficients[i] /= (data_t)fabs(matrix[i][i]);
     }
 
-#pragma omp for reduction(max : max)
+    #pragma omp for reduction(max : max)
     for (i = 0; i < N; i++) {
       if (coeficients[i] > max)
         max = coeficients[i];
@@ -180,17 +180,17 @@ void gen_linear_system(LinSys *linsys) {
 void normalize_system(LinSys *linsys, LinSys *normsys) {
   int i = 0, j = 0;
 
-#pragma omp parallel num_threads(T) shared(linsys, normsys) private(i, j)
+  #pragma omp parallel num_threads(T) shared(linsys, normsys) private(i, j)
   {
 
-#pragma omp for simd collapse(2)
+    #pragma omp for simd collapse(2)
     for (i = 0; i < N; i++) {
       for (j = 0; j < N; j++) {
         normsys->A[i][j] = -linsys->A[i][j] / linsys->A[i][i];
       }
     }
 
-#pragma omp for simd linear(i : 1)
+    #pragma omp for simd linear(i : 1)
     for (i = 0; i < N; i++) {
       normsys->A[i][i] = 0;
       normsys->b[i] = linsys->b[i] / linsys->A[i][i];
@@ -209,7 +209,7 @@ data_t calc_err(data_t *x0, data_t *x1) {
   data_t max_diff = -1;
   data_t max_abs = -1;
 
-#pragma omp parallel for num_threads(T) reduction(max : max_abs, max_diff)
+  #pragma omp parallel for num_threads(T) reduction(max : max_abs, max_diff)
   for (int i = 0; i < N; i++) {
     if (fabs(x1[i]) > max_abs)
       max_abs = fabs(x1[i]);
@@ -229,6 +229,7 @@ data_t calc_err(data_t *x0, data_t *x1) {
  * @return result vector
  */
 data_t *solve(LinSys *normsys, data_t *x, data_t e) {
+  bool flag = 0;
   data_t *res = (data_t *)malloc(sizeof(data_t) * N);
   if (!res) {
     printf("Failed to allocate memory\n");
@@ -240,15 +241,56 @@ data_t *solve(LinSys *normsys, data_t *x, data_t e) {
     res[i] = x[i];
 
   do {
-    for (int i = 0; i < N; i++)
-      x[i] = res[i];
     for (int i = 0; i < N; i++) {
+      x[i] = res[i];
       res[i] = normsys->b[i];
+    }
+    for (int i = 0; i < N; i++) {
       for (int j = 0; j < N; j++) {
         res[i] += normsys->A[i][j] * x[j];
       }
     }
   } while (calc_err(x, res) > e);
+   
+  // iterate until solved
+  /*
+  #pragma omp parallel num_threads(T) shared(res, normsys, x, e)
+  {
+    // fill up for first interaction
+    #pragma omp for simd
+    for (int i = 0; i < N; i++)
+      res[i] = x[i];
+
+    do {
+      
+      #pragma omp for simd  
+      for (int i = 0; i < N; i++) {
+        x[i] = res[i];
+      }
+      
+      #pragma omp for simd  
+      for (int i = 0; i < N; i++) {
+        res[i] = normsys->b[i];
+      }
+
+      #pragma omp for simd collapse(2) reduction(+: res[:N])
+      for (int i = 0; i < N; i++) {
+        for (int j = 0; j < N; j++) {
+          res[i] += normsys->A[i][j] * x[j];
+        }
+      }
+      
+      #pragma omp single
+      {
+        if (calc_err(x, res) <= e) 
+          flag = 1;
+
+        // enfiar task aqui
+      }
+
+    } while(!flag);
+  }
+  */
 
   return res;
 }
