@@ -143,6 +143,7 @@ void gen_linear_system(LinSys *linsys) {
   // value generation
   for (int i = 0; i < N; i++) {
     // filling up b
+    random_number();
     linsys->b[i] = random_number();
 
     // filling up A
