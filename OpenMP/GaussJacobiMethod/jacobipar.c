@@ -41,16 +41,25 @@ data_t random_number(void) {
  * @param linsys Linear system to be showed
  */
 void linsys_print(LinSys *linsys) {
-  printf("\nA:\n");
+  data_t tmp = 0;
+  printf("\t[Linear System]\n");
   for (int i = 0; i < N; i++) {
+    printf("[%d]\t", i);
     for (int j = 0; j < N; j++) {
-      printf("%.5lf ", linsys->A[i][j]);
+      tmp = linsys->A[i][j];
+      if (j == 0) {
+        printf("%9.4lf*x%d", tmp, j);
+      } else if (tmp < 0)
+        printf(" - %8.4lf*x%d", fabs(tmp), j);
+      else
+        printf(" + %8.4lf*x%d", tmp, j);
     }
-    printf("\n");
+    tmp = linsys->b[i];
+    if (tmp < 0)
+      printf(" = %8.4lf\n", linsys->b[i]);
+    else
+      printf(" =  %8.4lf\n", linsys->b[i]);
   }
-  printf("\nb:\n");
-  for (int i = 0; i < N; i++)
-    printf("%.5lf ", linsys->b[i]);
   printf("\n");
 }
 
@@ -327,6 +336,7 @@ void test_solution(LinSys *linsys, data_t *solution) {
     }
   } while (!valid);
 
+  #pragma omp parallel for simd reduction(+: final_value) shared(choice, linsys, solution)
   for (int i = 0; i < N; i++) {
     final_value += solution[i]*linsys->A[choice][i];
   }
@@ -339,11 +349,6 @@ void test_solution(LinSys *linsys, data_t *solution) {
 
 int main(int argc, char *argv[]) {
   omp_set_max_active_levels(2); // enable 2 level nesting
-
-  // dev info
-  printf("No de Argumentos: %d\n", argc);
-  for (int i = 0; i < argc; i++)
-    printf("Argumentos: %s\n", argv[i]);
 
   // argument check
   if ((argc - 1) != CLI_ARG_NUM) {
@@ -359,41 +364,32 @@ int main(int argc, char *argv[]) {
   T = atoi(argv[2]);
   srand(atoi(argv[3]));
 
-  // DEBUG: gen_linear_system
+  // generate linear system
   LinSys linsys;
   gen_linear_system(&linsys);
-  char ret = convergence_test(linsys.A);
-
   linsys_print(&linsys);
-  printf("\n%d\n", ret);
-  // end of gen_linear_system debug
 
-  // DEBUG: normalize_system
+  // normalize system
   LinSys normsys;
   normsys.A = allocate_matrix();
   normsys.b = (data_t *)malloc(sizeof(data_t) * N);
-
   normalize_system(&linsys, &normsys);
-  linsys_print(&normsys);
-  // end of normalize_system debug
 
-  // DEBUG: solve
+  // solve system
   data_t *x = (data_t *)malloc(N * sizeof(data_t));
-  for (int i = 0; i < N; i++)
+  #pragma omp parallel for simd num_threads(T)
+  for (int i = 0; i < N; i++) {
     x[i] = normsys.b[i];
-
-  printf("\nx0:\n");
-  for (int i = 0; i < N; i++)
-    printf("%f ", x[i]);
-  printf("\n\n");
+  }
 
   data_t *res = solve(&normsys, x, 0.00001);
 
-  printf("\n\nResult:\n");
+  printf("\t[Solution]\n");
   for (int i = 0; i < N; i++)
-    printf("%f ", res[i]);
-  printf("\n");
-  // end of solve debug
+    printf("\tx%d = %8.4lf\n", i, res[i]);
+
+  // test solution validity
+  test_solution(&linsys, res);
 
   // free allocated memory
   free(x);
