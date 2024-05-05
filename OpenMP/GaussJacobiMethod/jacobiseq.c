@@ -47,17 +47,17 @@ void linsys_print(LinSys *linsys) {
     for (int j = 0; j < N; j++) {
       tmp = linsys->A[i][j];
       if (j == 0) {
-        printf("%8.3lf*x%d", tmp, j);
+        printf("%9.4lf*x%d", tmp, j);
       } else if (tmp < 0)
-        printf(" - %7.3lf*x%d", fabs(tmp), j);
+        printf(" - %8.4lf*x%d", fabs(tmp), j);
       else
-        printf(" + %7.3lf*x%d", tmp, j);
+        printf(" + %8.4lf*x%d", tmp, j);
     }
     tmp = linsys->b[i];
     if (tmp < 0)
-      printf(" = %7.3lf\n", linsys->b[i]);
+      printf(" = %8.4lf\n", linsys->b[i]);
     else
-      printf(" =  %7.3lf\n", linsys->b[i]);
+      printf(" =  %8.4lf\n", linsys->b[i]);
   }
   printf("\n");
 }
@@ -241,6 +241,40 @@ data_t *solve(LinSys *normsys, data_t *x, data_t e) {
   return res;
 }
 
+/**
+ * Ask the user to test the solution in some chosen equation
+ *
+ * @param linsys Original linear system
+ * @param solution Vector of solution values
+ */
+void test_solution(LinSys *linsys, data_t *solution) {
+  int choice = 0;
+  bool valid = 0;
+  data_t final_value = 0;
+
+  printf("\n\t[TEST]\n");
+
+  do {
+    printf("\tIn which equation do you want to test the solution? ");
+    scanf("%d", &choice);
+    if (choice >= N || choice < 0) {
+      printf("\tInvalid input. Equations are only indexed between 0 and %d. "
+             "Try again!\n",
+             N - 1);
+    } else {
+      valid = 1;
+    }
+  } while (!valid);
+
+  for (int i = 0; i < N; i++) {
+    final_value += solution[i] * linsys->A[choice][i];
+  }
+
+  printf("\n");
+  printf("\tReal result:           %8.4lf\n", linsys->b[choice]);
+  printf("\tResult using solution: %8.4lf\n", final_value);
+}
+
 int main(int argc, char *argv[]) {
 
   // argument check
@@ -271,11 +305,14 @@ int main(int argc, char *argv[]) {
   data_t *x = (data_t *)malloc(N * sizeof(data_t));
   memcpy(x, normsys.b, N * sizeof(data_t)); // initial bet for x
 
-  data_t *res = solve(&normsys, x, 0.001);
+  data_t *res = solve(&normsys, x, 0.00001);
 
   printf("\t[Solution]\n");
   for (int i = 0; i < N; i++)
-    printf("\tx%d = %7.3lf\n", i, res[i]);
+    printf("\tx%d = %8.4lf\n", i, res[i]);
+
+  // test solution validity
+  test_solution(&linsys, res);
 
   // free allocated memory
   free(x);

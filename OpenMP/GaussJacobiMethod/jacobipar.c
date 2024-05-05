@@ -145,8 +145,9 @@ void gen_linear_system(LinSys *linsys) {
   linsys->b = (data_t *)malloc(sizeof(data_t) * N);
 
   // value generation
-  //#pragma omp parallel for simd num_threads(T) shared(linsys)
+  #pragma omp parallel for simd num_threads(T) shared(linsys)
   for (int i = 0; i < N; i++) {
+    random_number();
     // filling up b
     linsys->b[i] = random_number();
 
@@ -300,6 +301,40 @@ data_t *solve(LinSys *normsys, data_t *x, data_t e) {
   */
 
   return res;
+}
+
+/**
+ * Ask the user to test the solution in some chosen equation
+ *
+ * @param linsys Original linear system
+ * @param solution Vector of solution values
+ */
+void test_solution(LinSys *linsys, data_t *solution) {
+  int choice = 0;
+  bool valid = 0;
+  data_t final_value = 0;
+
+  printf("\n\t[TEST]\n");
+
+  do {
+    printf("\tIn which equation do you want to test the solution? ");
+    scanf("%d", &choice);
+    if (choice >= N || choice < 0) {
+      printf("\tInvalid input. Equations are only indexed between 0 and %d. Try again!\n", N-1);
+    }
+    else {
+      valid = 1;
+    }
+  } while (!valid);
+
+  for (int i = 0; i < N; i++) {
+    final_value += solution[i]*linsys->A[choice][i];
+  }
+
+  printf("\n");
+  printf("\tReal result:           %8.4lf\n", linsys->b[choice]);
+  printf("\tResult using solution: %8.4lf\n", final_value);
+
 }
 
 int main(int argc, char *argv[]) {
