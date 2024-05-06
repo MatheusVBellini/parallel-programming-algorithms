@@ -123,11 +123,11 @@ bool convergence_test(data_t **matrix) {
   #pragma omp parallel private(i, j) shared(coeficients) num_threads(T)
   {
     #pragma omp for simd linear(i : 1)
-    for (int i = 0; i < N; i++) {
+    for (i = 0; i < N; i++) {
       coeficients[i] = -fabs(matrix[i][i]/(data_t)matrix[i][i]);
     }
 
-    #pragma omp for simd collapse(2) reduction(+: coeficients[:N])
+    #pragma omp for collapse(2) reduction(+: coeficients[:N])
     for (i = 0; i < N; i++) {
       for (j = 0; j < N; j++) {
         coeficients[i] += fabs(matrix[i][j]/(data_t)matrix[i][i]);
@@ -368,7 +368,7 @@ int main(int argc, char *argv[]) {
   LinSys linsys;
   gen_linear_system(&linsys);
   linsys_print(&linsys);
-
+  
   // normalize system
   LinSys normsys;
   normsys.A = allocate_matrix();
