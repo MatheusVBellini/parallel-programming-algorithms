@@ -226,7 +226,6 @@ data_t calc_err(data_t *x0, data_t *x1) {
   data_t max_diff = -1;
   data_t max_abs = -1;
 
-  #pragma omp parallel for num_threads(T) reduction(max : max_abs, max_diff)
   for (int i = 0; i < N; i++) {
     if (fabs(x1[i]) > max_abs)
       max_abs = fabs(x1[i]);
@@ -252,11 +251,37 @@ data_t *solve(LinSys *normsys, data_t *x, data_t e) {
     printf("Failed to allocate memory\n");
     exit(1);
   }
+  
+  #pragma omp parallel num_threads(T) shared(res, normsys, x, e)
+  {
+    // first iteration
+    #pragma omp for simd
+    for (int i = 0; i < N; i++) {
+      res[i] = normsys->b[i];
+    }
+    #pragma omp for collapse(2) reduction(+: res[:N])
+    for (int i = 0; i < N; i++) {
+      for (int j = 0; j < N; j++) {
+        res[i] += normsys->A[i][j] * x[j];
+      }
+    }
+  
+    /*
+    // error checking
+    #pragma omp single
+    {
+      #pragma omp task
+      {
+        while(calc_err(x,res) > e);
+        flag = 1;
+      }
+    }
 
-  // fill up for first interaction
-  for (int i = 0; i < N; i++)
-    res[i] = x[i];
-
+    // further iterations
+    printf("AQUI\n");
+    */
+  }
+  
   do {
     for (int i = 0; i < N; i++) {
       x[i] = res[i];
@@ -268,46 +293,6 @@ data_t *solve(LinSys *normsys, data_t *x, data_t e) {
       }
     }
   } while (calc_err(x, res) > e);
-   
-  // iterate until solved
-  /*
-  #pragma omp parallel num_threads(T) shared(res, normsys, x, e)
-  {
-    // fill up for first interaction
-    #pragma omp for simd
-    for (int i = 0; i < N; i++)
-      res[i] = x[i];
-
-    do {
-      
-      #pragma omp for simd  
-      for (int i = 0; i < N; i++) {
-        x[i] = res[i];
-      }
-      
-      #pragma omp for simd  
-      for (int i = 0; i < N; i++) {
-        res[i] = normsys->b[i];
-      }
-
-      #pragma omp for simd collapse(2) reduction(+: res[:N])
-      for (int i = 0; i < N; i++) {
-        for (int j = 0; j < N; j++) {
-          res[i] += normsys->A[i][j] * x[j];
-        }
-      }
-      
-      #pragma omp single
-      {
-        if (calc_err(x, res) <= e) 
-          flag = 1;
-
-        // enfiar task aqui
-      }
-
-    } while(!flag);
-  }
-  */
 
   return res;
 }
