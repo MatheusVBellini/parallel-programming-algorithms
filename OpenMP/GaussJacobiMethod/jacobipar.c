@@ -244,58 +244,55 @@ data_t calc_err(data_t *x0, data_t *x1) {
  * @param e Result precision
  * @return result vector
  */
-data_t *solve(LinSys *normsys, data_t *x, data_t e) {
-  bool flag = 0;
-  data_t *res = (data_t *)malloc(sizeof(data_t) * N);
-  if (!res) {
-    printf("Failed to allocate memory\n");
-    exit(1);
-  }
-  
-  #pragma omp parallel num_threads(T) shared(res, normsys, x, e)
-  {
-    // first iteration
-    #pragma omp for simd
-    for (int i = 0; i < N; i++) {
-      res[i] = normsys->b[i];
+  data_t *solve(LinSys *normsys, data_t *x, data_t e) {
+    data_t *res = (data_t *)malloc(sizeof(data_t) * N);
+    if (!res) {
+      printf("Failed to allocate memory\n");
+      exit(1);
     }
-    #pragma omp for collapse(2) reduction(+: res[:N])
-    for (int i = 0; i < N; i++) {
-      for (int j = 0; j < N; j++) {
-        res[i] += normsys->A[i][j] * x[j];
-      }
-    }
-  
-    /*
-    // error checking
-    #pragma omp single
+
+    #pragma omp parallel num_threads(T) shared(res, normsys, x)
     {
-      #pragma omp task
+      #pragma omp single
       {
-        while(calc_err(x,res) > e);
-        flag = 1;
+        // Task para inicializar o vetor res
+        #pragma omp task
+        {
+          #pragma omp parallel for simd
+          for (int i = 0; i < N; i++) {
+            res[i] = normsys->b[i];
+          }
+        }
+
+        // Task para calcular os valores do vetor res
+        #pragma omp task
+        {
+          #pragma omp parallel for collapse(2) reduction(+: res[:N])
+          for (int i = 0; i < N; i++) {
+            for (int j = 0; j < N; j++) {
+              res[i] += normsys->A[i][j] * x[j];
+            }
+          }
+        }
       }
+
+      #pragma omp taskwait // Garantir que todas as tasks estejam completas antes de proceder
     }
 
-    // further iterations
-    printf("AQUI\n");
-    */
+    do {
+      for (int i = 0; i < N; i++) {
+        x[i] = res[i];
+        res[i] = normsys->b[i];
+      }
+      for (int i = 0; i < N; i++) {
+        for (int j = 0; j < N; j++) {
+          res[i] += normsys->A[i][j] * x[j];
+        }
+      }
+    } while (calc_err(x, res) > e);
+
+    return res;
   }
-  
-  do {
-    for (int i = 0; i < N; i++) {
-      x[i] = res[i];
-      res[i] = normsys->b[i];
-    }
-    for (int i = 0; i < N; i++) {
-      for (int j = 0; j < N; j++) {
-        res[i] += normsys->A[i][j] * x[j];
-      }
-    }
-  } while (calc_err(x, res) > e);
-
-  return res;
-}
 
 /**
  * Ask the user to test the solution in some chosen equation
