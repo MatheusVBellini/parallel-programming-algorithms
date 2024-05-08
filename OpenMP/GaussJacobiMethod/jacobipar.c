@@ -3,6 +3,7 @@
 #include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 
 #define CLI_ARG_NUM 3
 #define RAND_LIMIT 1000
@@ -33,6 +34,23 @@ typedef struct {
  */
 data_t random_number(void) {
   return (data_t)((rand() / (0.5 * RAND_MAX) - 1.0) * RAND_LIMIT);
+}
+
+/**
+ * Allocate aligned memory
+ *
+ * @param size Size in bytes of how much space must be allocated
+ * @return pointer to allocated data
+ */
+void *aligned_malloc(size_t size) {
+  void* ptr = NULL;
+  int ret = posix_memalign(&ptr, 32, size);
+  if (ret) {
+    printf("Memory allocation failed.\n");
+    exit(1);
+  }
+
+  return ptr;
 }
 
 /**
@@ -70,7 +88,7 @@ void linsys_print(LinSys *linsys) {
  */
 void linsys_free(LinSys *linsys) {
   if (linsys->A) {
-    #pragma omp parallel for simd num_threads(T) shared(linsys)
+    #pragma omp parallel for num_threads(T) shared(linsys)
     for (int i = 0; i < N; i++) {
       free(linsys->A[i]);
     }
@@ -86,17 +104,11 @@ void linsys_free(LinSys *linsys) {
  * @return pointer to allocated matrix
  */
 data_t **allocate_matrix(void) {
-  data_t **m = (data_t **)malloc(N * sizeof(data_t *));
-  if (!m) {
-    printf("Failed to allocate memory for the matrix");
-  }
+  data_t **m = (data_t **)aligned_malloc(N * sizeof(data_t *));
 
   #pragma omp parallel for num_threads(T) shared(m)
   for (int i = 0; i < N; i++) {
-    m[i] = (data_t *)malloc(N * sizeof(data_t));
-    if (!m[i]) {
-      printf("Failed to allocate memory for the matrix");
-    }
+    m[i] = (data_t *)aligned_malloc(N * sizeof(data_t));
   }
 
   return m;
@@ -122,7 +134,7 @@ bool convergence_test(data_t **matrix) {
 
   #pragma omp parallel private(i, j) shared(coeficients) num_threads(T)
   {
-    #pragma omp for simd linear(i : 1)
+    #pragma omp for simd linear(i : 1) aligned(coeficients, matrix: 32)
     for (i = 0; i < N; i++) {
       coeficients[i] = -fabs(matrix[i][i]/(data_t)matrix[i][i]);
     }
@@ -151,10 +163,10 @@ bool convergence_test(data_t **matrix) {
  */
 void gen_linear_system(LinSys *linsys) {
   linsys->A = allocate_matrix();
-  linsys->b = (data_t *)malloc(sizeof(data_t) * N);
+  linsys->b = (data_t *)aligned_malloc(sizeof(data_t) * N);
 
   // value generation
-  #pragma omp parallel for simd num_threads(T) shared(linsys)
+  #pragma omp parallel for num_threads(T) shared(linsys)
   for (int i = 0; i < N; i++) {
     random_number();
     // filling up b
@@ -200,14 +212,14 @@ void normalize_system(LinSys *linsys, LinSys *normsys) {
   #pragma omp parallel num_threads(T) shared(linsys, normsys) private(i, j)
   {
 
-    #pragma omp for simd collapse(2)
+    #pragma omp for simd collapse(2) aligned(normsys, linsys: 32)
     for (i = 0; i < N; i++) {
       for (j = 0; j < N; j++) {
         normsys->A[i][j] = -linsys->A[i][j] / linsys->A[i][i];
       }
     }
 
-    #pragma omp for simd linear(i : 1)
+    #pragma omp for simd linear(i : 1) aligned(normsys, linsys: 32)
     for (i = 0; i < N; i++) {
       normsys->A[i][i] = 0;
       normsys->b[i] = linsys->b[i] / linsys->A[i][i];
@@ -245,40 +257,50 @@ data_t calc_err(data_t *x0, data_t *x1) {
  * @return result vector
  */
   data_t *solve(LinSys *normsys, data_t *x, data_t e) {
-    data_t *res = (data_t *)malloc(sizeof(data_t) * N);
-    if (!res) {
-      printf("Failed to allocate memory\n");
-      exit(1);
-    }
+    bool flag = 0;
+    data_t *res = (data_t *)aligned_malloc(sizeof(data_t) * N);
 
-    #pragma omp parallel num_threads(T) shared(res, normsys, x)
-    {
-      #pragma omp single
+    #pragma omp parallel for simd num_threads(T) aligned(res, x: 32)
+    for (int i = 0; i < N; i++)
+      res[i] = x[i];
+
+    /*
+    do {
+      #pragma omp parallel num_threads(T) shared(res, x, e, normsys)
       {
-        // Task para inicializar o vetor res
-        #pragma omp task
-        {
-          #pragma omp parallel for simd
-          for (int i = 0; i < N; i++) {
-            res[i] = normsys->b[i];
+        #pragma omp for simd aligned(res, x: 32)
+        for (int i = 0; i < N; i++)
+          res[i] = x[i];
+
+        #pragma omp for simd aligned(res, normsys: 32)
+        for (int i = 0; i < N; i++)
+          res[i] = normsys->b[i];
+        
+        #pragma omp for collapse(2) reduction(+: res[:N])
+        for (int i = 0; i < N; i++) {
+          for (int j = 0; j < N; j++) {
+            res[i] += normsys->A[i][j] * x[j];
           }
         }
-
-        // Task para calcular os valores do vetor res
-        #pragma omp task
+        
+        #pragma omp single
         {
-          #pragma omp parallel for collapse(2) reduction(+: res[:N])
-          for (int i = 0; i < N; i++) {
-            for (int j = 0; j < N; j++) {
-              res[i] += normsys->A[i][j] * x[j];
-            }
+          #pragma omp task
+          {
+            data_t *x0 = (data_t*)aligned_malloc(N*sizeof(data_t));
+            data_t *x1 = (data_t*)aligned_malloc(N*sizeof(data_t));
+            memcpy(x0, x, N*sizeof(data_t));
+            memcpy(x1, res, N*sizeof(data_t));
+            if (calc_err(x0, x1) <= e) flag = 1;
+            free(x0);
+            free(x1);
           }
         }
       }
-
-      #pragma omp taskwait // Garantir que todas as tasks estejam completas antes de proceder
-    }
-
+    } while(!flag);
+    */
+    
+    
     do {
       for (int i = 0; i < N; i++) {
         x[i] = res[i];
@@ -318,7 +340,7 @@ void test_solution(LinSys *linsys, data_t *solution) {
     }
   } while (!valid);
 
-  #pragma omp parallel for simd reduction(+: final_value) shared(choice, linsys, solution)
+  #pragma omp parallel for simd reduction(+: final_value) aligned(solution, linsys: 32) shared(choice, linsys, solution)
   for (int i = 0; i < N; i++) {
     final_value += solution[i]*linsys->A[choice][i];
   }
@@ -354,14 +376,15 @@ int main(int argc, char *argv[]) {
   // normalize system
   LinSys normsys;
   normsys.A = allocate_matrix();
-  normsys.b = (data_t *)malloc(sizeof(data_t) * N);
+  normsys.b = (data_t *)aligned_malloc(sizeof(data_t) * N);
   normalize_system(&linsys, &normsys);
 
   // solve system
-  data_t *x = (data_t *)malloc(N * sizeof(data_t));
-  #pragma omp parallel for simd num_threads(T)
+  data_t *x = (data_t *)aligned_malloc(N * sizeof(data_t));
+  data_t *tmp = normsys.b;
+  #pragma omp parallel for simd num_threads(T) aligned(x, tmp: 32)
   for (int i = 0; i < N; i++) {
-    x[i] = normsys.b[i];
+    x[i] = tmp[i];
   }
 
   data_t *res = solve(&normsys, x, 0.00001);
