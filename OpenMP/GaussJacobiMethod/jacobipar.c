@@ -257,63 +257,59 @@ data_t calc_err(data_t *x0, data_t *x1) {
  * @return result vector
  */
   data_t *solve(LinSys *normsys, data_t *x, data_t e) {
-    bool flag = 0;
-    data_t *res = (data_t *)aligned_malloc(sizeof(data_t) * N);
+    data_t *xm1 = (data_t *)aligned_malloc(sizeof(data_t) * N); // x minus 1 (x[k-1])
+    data_t *xp1 = (data_t *)aligned_malloc(sizeof(data_t) * N); // m plus 1  (x[k+1])
+    bool converged = 0;
+    omp_lock_t err_calculated;
+    omp_lock_t calculate_err;
+    omp_init_lock(&err_calculated);
+    omp_init_lock(&calculate_err);
 
-    #pragma omp parallel for simd num_threads(T) aligned(res, x: 32)
-    for (int i = 0; i < N; i++)
-      res[i] = x[i];
-
-    /*
-    do {
-      #pragma omp parallel num_threads(T) shared(res, x, e, normsys)
-      {
-        #pragma omp for simd aligned(res, x: 32)
-        for (int i = 0; i < N; i++)
-          res[i] = x[i];
-
-        #pragma omp for simd aligned(res, normsys: 32)
-        for (int i = 0; i < N; i++)
-          res[i] = normsys->b[i];
-        
-        #pragma omp for collapse(2) reduction(+: res[:N])
-        for (int i = 0; i < N; i++) {
-          for (int j = 0; j < N; j++) {
-            res[i] += normsys->A[i][j] * x[j];
-          }
-        }
-        
-        #pragma omp single
-        {
-          #pragma omp task
-          {
-            data_t *x0 = (data_t*)aligned_malloc(N*sizeof(data_t));
-            data_t *x1 = (data_t*)aligned_malloc(N*sizeof(data_t));
-            memcpy(x0, x, N*sizeof(data_t));
-            memcpy(x1, res, N*sizeof(data_t));
-            if (calc_err(x0, x1) <= e) flag = 1;
-            free(x0);
-            free(x1);
-          }
-        }
+    #pragma omp parallel num_threads(T) shared(xm1, x, xp1, e)
+    { 
+      // first iteration
+      #pragma omp for simd aligned(xm1, x, xp1: 32)
+      for (int i = 0; i < N; i++){
+        xm1[i] = x[i];                        // save x[k-1]
+        xp1[i] = normsys->b[i];
       }
-    } while(!flag);
-    */
-    
-    
-    do {
-      for (int i = 0; i < N; i++) {
-        x[i] = res[i];
-        res[i] = normsys->b[i];
-      }
+      #pragma omp for simd collapse(2) reduction(+: xp1[:N])
       for (int i = 0; i < N; i++) {
         for (int j = 0; j < N; j++) {
-          res[i] += normsys->A[i][j] * x[j];
+          xp1[i] += normsys->A[i][j] * x[j];  // calculate x[k+1]
         }
       }
-    } while (calc_err(x, res) > e);
+      #pragma omp for simd aligned(xm1, x, xp1: 32)
+      for (int i = 0; i < N; i++){
+        x[i] = xp1[i];                        // save x[k+1]
+      }
+      omp_unset_lock(&calculate_err);
+      
+      // define task to calculate the error
+      #pragma omp single
+      {
+        #pragma omp task
+        {
+          do {
+            omp_unset_lock(&err_calculated);  // signal error has been calculated
+            omp_set_lock(&calculate_err);  // wait for calculation request
+          } while(calc_err(xm1, x) > e);
+          converged = 1;
+          #pragma omp flush
+        }
+      }
+      
+      // main loop
+      while(!converged) {
+         omp_set_lock(&err_calculated);
 
-    return res;
+         omp_unset_lock(&calculate_err);
+      }
+
+    }
+    
+    free(xm1);
+    return xp1;
   }
 
 /**
