@@ -264,7 +264,7 @@ data_t calc_err(data_t *x0, data_t *x1) {
     omp_lock_t move_data;
     omp_init_lock(&move_data);
 
-    #pragma omp parallel num_threads(T) shared(xm1, x, xp1, e, converged)
+    #pragma omp parallel num_threads(2) shared(xm1, x, xp1, e, converged)
     { 
       // first iteration
       #pragma omp for simd aligned(xm1, x, xp1: 32)
@@ -305,24 +305,32 @@ data_t calc_err(data_t *x0, data_t *x1) {
         // main loop
         #pragma omp task
         {
-
-          while (!converged) {
-            for (int i = 0; i < N; i++){
-              xp1[i] = normsys->b[i];
-            }
-            for (int i = 0; i < N; i++) {
-              for (int j = 0; j < N; j++) {
-                xp1[i] += normsys->A[i][j] * x[j];  // calculate x[k+1]
+          #pragma omp parallel num_threads(T-1) shared(xm1, x, xp1, converged, can_move_data)         
+          {
+            while (!converged) {
+              #pragma omp for simd aligned(xp1: 32)
+              for (int i = 0; i < N; i++){
+                xp1[i] = normsys->b[i];
               }
+              #pragma omp for simd collapse(2) aligned(xp1, x: 32) reduction(+: xp1[:N])
+              for (int i = 0; i < N; i++) {
+                for (int j = 0; j < N; j++) {
+                  xp1[i] += normsys->A[i][j] * x[j];  // calculate x[k+1]
+                }
+              }
+              
+              #pragma omp single
+              {
+                omp_set_lock(&move_data);
+                for (int i = 0; i < N; i++) {
+                  xm1[i] = x[i];               // x[k] in x[k-1]
+                  x[i] = xp1[i];               // x[k+1] in x[k]
+                }   
+                omp_unset_lock(&move_data);
+              }
+              #pragma omp barrier
             }
-            omp_set_lock(&move_data);
-            for (int i = 0; i < N; i++) {
-              xm1[i] = x[i];               // x[k] in x[k-1]
-              x[i] = xp1[i];               // x[k+1] in x[k]
-            }  
-            omp_unset_lock(&move_data);
           }
-
         }
       }
       
