@@ -167,7 +167,6 @@ void gen_linear_system(LinSys *linsys) {
   linsys->b = (data_t *)aligned_malloc(sizeof(data_t) * N);
 
   // value generation
-  #pragma omp parallel for num_threads(T) shared(linsys)
   for (int i = 0; i < N; i++) {
     random_number();
     // filling up b
