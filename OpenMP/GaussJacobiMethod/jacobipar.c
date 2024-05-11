@@ -333,7 +333,6 @@ data_t calc_err(data_t *x0, data_t *x1) {
               {
                 omp_unset_lock(&move_data);
               }
-              #pragma omp barrier
             }
           }
         }
