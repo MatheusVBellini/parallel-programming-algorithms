@@ -6,7 +6,8 @@
 #include <string.h>
 
 #define CLI_ARG_NUM 3
-#define RAND_LIMIT 1000
+#define RAND_LIMIT  1000
+#define MEM_ALIGN   64
 
 int N = 0;
 int T = 1;
@@ -44,7 +45,7 @@ data_t random_number(void) {
  */
 void *aligned_malloc(size_t size) {
   void* ptr = NULL;
-  int ret = posix_memalign(&ptr, 32, size);
+  int ret = posix_memalign(&ptr, MEM_ALIGN, size);
   if (ret) {
     printf("Memory allocation failed.\n");
     exit(1);
@@ -134,7 +135,7 @@ bool convergence_test(data_t **matrix) {
 
   #pragma omp parallel private(i, j) shared(coeficients) num_threads(T)
   {
-    #pragma omp for simd linear(i : 1) aligned(coeficients, matrix: 32)
+    #pragma omp for simd linear(i : 1) aligned(coeficients, matrix: MEM_ALIGN)
     for (i = 0; i < N; i++) {
       coeficients[i] = -fabs(matrix[i][i]/(data_t)matrix[i][i]);
     }
@@ -212,14 +213,14 @@ void normalize_system(LinSys *linsys, LinSys *normsys) {
   #pragma omp parallel num_threads(T) shared(linsys, normsys) private(i, j)
   {
 
-    #pragma omp for simd collapse(2) aligned(normsys, linsys: 32)
+    #pragma omp for simd collapse(2) aligned(normsys, linsys: MEM_ALIGN)
     for (i = 0; i < N; i++) {
       for (j = 0; j < N; j++) {
         normsys->A[i][j] = -linsys->A[i][j] / linsys->A[i][i];
       }
     }
 
-    #pragma omp for simd linear(i : 1) aligned(normsys, linsys: 32)
+    #pragma omp for simd linear(i : 1) aligned(normsys, linsys: MEM_ALIGN)
     for (i = 0; i < N; i++) {
       normsys->A[i][i] = 0;
       normsys->b[i] = linsys->b[i] / linsys->A[i][i];
@@ -266,18 +267,18 @@ data_t calc_err(data_t *x0, data_t *x1) {
     #pragma omp parallel num_threads(2) shared(xm1, x, xp1, e, converged)
     { 
       // first iteration
-      #pragma omp for simd aligned(xm1, x, xp1: 32)
+      #pragma omp for simd aligned(xm1, x, xp1, normsys: MEM_ALIGN)
       for (int i = 0; i < N; i++){
         xm1[i] = x[i];                        // save x[k] in x[k-1]
         xp1[i] = normsys->b[i];
       }
-      #pragma omp for simd collapse(2) reduction(+: xp1[:N]) aligned(xp1: 32)
+      #pragma omp for simd collapse(2) reduction(+: xp1[:N]) aligned(xp1, normsys: MEM_ALIGN)
       for (int i = 0; i < N; i++) {
         for (int j = 0; j < N; j++) {
           xp1[i] += normsys->A[i][j] * x[j];  // calculate x[k+1]
         }
       }
-      #pragma omp for simd aligned(xm1, x, xp1: 32)
+      #pragma omp for simd aligned(x, xp1: MEM_ALIGN)
       for (int i = 0; i < N; i++){
         x[i] = xp1[i];                        // save x[k+1] in x[k]
       }
@@ -306,11 +307,11 @@ data_t calc_err(data_t *x0, data_t *x1) {
           #pragma omp parallel num_threads(T-1) shared(xm1, x, xp1, converged)         
           {
             while (!converged) {
-              #pragma omp for simd aligned(xp1: 32)
+              #pragma omp for simd aligned(xp1, normsys: MEM_ALIGN)
               for (int i = 0; i < N; i++){
                 xp1[i] = normsys->b[i];
               }
-              #pragma omp for simd collapse(2) aligned(xp1, x: 32) reduction(+: xp1[:N])
+              #pragma omp for simd collapse(2) aligned(xp1, x, normsys: MEM_ALIGN) reduction(+: xp1[:N])
               for (int i = 0; i < N; i++) {
                 for (int j = 0; j < N; j++) {
                   xp1[i] += normsys->A[i][j] * x[j];  // calculate x[k+1]
@@ -323,10 +324,10 @@ data_t calc_err(data_t *x0, data_t *x1) {
                 omp_set_lock(&move_data);
               }
               #pragma omp barrier
-              #pragma omp for simd aligned(xm1, x: 32)
+              #pragma omp for simd aligned(xm1, x: MEM_ALIGN)
               for (int i = 0; i < N; i++)
                 xm1[i] = x[i];               // x[k] in x[k-1]
-              #pragma omp for simd aligned(xm1, x: 32)
+              #pragma omp for simd aligned(xm1, x: MEM_ALIGN)
               for (int i = 0; i < N; i++)
                 x[i] = xp1[i];               // x[k+1] in x[k]
               #pragma omp single
@@ -368,7 +369,7 @@ void test_solution(LinSys *linsys, data_t *solution) {
     }
   } while (!valid);
 
-  #pragma omp parallel for simd reduction(+: final_value) aligned(solution, linsys: 32) shared(choice, linsys, solution)
+  #pragma omp parallel for simd reduction(+: final_value) aligned(solution, linsys: MEM_ALIGN) shared(choice, linsys, solution)
   for (int i = 0; i < N; i++) {
     final_value += solution[i]*linsys->A[choice][i];
   }
@@ -410,7 +411,7 @@ int main(int argc, char *argv[]) {
   // solve system
   data_t *x = (data_t *)aligned_malloc(N * sizeof(data_t));
   data_t *tmp = normsys.b;
-  #pragma omp parallel for simd num_threads(T) aligned(x, tmp: 32)
+  #pragma omp parallel for simd num_threads(T) aligned(x, tmp: MEM_ALIGN)
   for (int i = 0; i < N; i++) {
     x[i] = tmp[i];
   }
