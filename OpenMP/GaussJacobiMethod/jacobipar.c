@@ -260,7 +260,6 @@ data_t calc_err(data_t *x0, data_t *x1) {
     data_t *xm1 = (data_t *)aligned_malloc(sizeof(data_t) * N); // x minus 1 (x[k-1])
     data_t *xp1 = (data_t *)aligned_malloc(sizeof(data_t) * N); // m plus 1  (x[k+1])
     bool converged = 0;
-    bool can_move_data = 0;
     omp_lock_t move_data;
     omp_init_lock(&move_data);
 
@@ -283,10 +282,9 @@ data_t calc_err(data_t *x0, data_t *x1) {
         x[i] = xp1[i];                        // save x[k+1] in x[k]
       }
       
-      // define task to calculate the error
       #pragma omp single
       {
-        // error checking
+        // check convergence
         #pragma omp task
         {
           data_t ret;
@@ -305,7 +303,7 @@ data_t calc_err(data_t *x0, data_t *x1) {
         // main loop
         #pragma omp task
         {
-          #pragma omp parallel num_threads(T-1) shared(xm1, x, xp1, converged, can_move_data)         
+          #pragma omp parallel num_threads(T-1) shared(xm1, x, xp1, converged)         
           {
             while (!converged) {
               #pragma omp for simd aligned(xp1: 32)
@@ -319,13 +317,20 @@ data_t calc_err(data_t *x0, data_t *x1) {
                 }
               }
               
+              // copy data to use in the other task
+              #pragma omp single
+              { 
+                omp_set_lock(&move_data);
+              }
+              #pragma omp barrier
+              #pragma omp for simd aligned(xm1, x: 32)
+              for (int i = 0; i < N; i++)
+                xm1[i] = x[i];               // x[k] in x[k-1]
+              #pragma omp for simd aligned(xm1, x: 32)
+              for (int i = 0; i < N; i++)
+                x[i] = xp1[i];               // x[k+1] in x[k]
               #pragma omp single
               {
-                omp_set_lock(&move_data);
-                for (int i = 0; i < N; i++) {
-                  xm1[i] = x[i];               // x[k] in x[k-1]
-                  x[i] = xp1[i];               // x[k+1] in x[k]
-                }   
                 omp_unset_lock(&move_data);
               }
               #pragma omp barrier
@@ -333,44 +338,6 @@ data_t calc_err(data_t *x0, data_t *x1) {
           }
         }
       }
-      
-      // main loop
-        /*
-      while(!converged) {
-         
-        #pragma omp for simd aligned(xm1, x, xp1: 32)
-        for (int i = 0; i < N; i++){
-          xp1[i] = normsys->b[i];
-        }
-        #pragma omp for simd collapse(2) reduction(+: xp1[:N]) aligned(xp1: 32)
-        for (int i = 0; i < N; i++) {
-          for (int j = 0; j < N; j++) {
-            xp1[i] += normsys->A[i][j] * x[j];  // calculate x[k+1]
-          }
-        }
-
-        // move data
-        #pragma omp single
-        { 
-          omp_set_lock(&move_data);
-          can_move_data = 1;
-        }
-        while(!can_move_data);
-        #pragma omp for simd aligned(xm1, x)
-        for (int i = 0; i < N; i++)
-          xm1[i] = x[i];               // x[k] in x[k-1]
-        #pragma omp for simd aligned(xm1, x)
-        for (int i = 0; i < N; i++)
-          x[i] = xp1[i];               // x[k+1] in x[k]
-        #pragma omp single
-        {
-          can_move_data = 0;
-          omp_unset_lock(&move_data);
-        }
-        
-        #pragma omp barrier
-      }*/
-
     }
     
     free(xm1);
