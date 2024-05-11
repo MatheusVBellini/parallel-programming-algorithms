@@ -9,8 +9,7 @@ Ts=(2 4 8)
 exec_num=30
 
 # sequential execution
-test_list=(5 10 50)
-for N in "${test_list[@]}"; do
+for N in "${Ns[@]}"; do
   echo "[\"SEQ-N$N\"]" > "./logs/SEQ-N$N.txt"                   # create log file to save time values
   for ((i = 1; i <= exec_num; i++)); do
     random_seed=$(( (RANDOM % 1000) + 1 ))                      # generate random seed for the code
@@ -22,7 +21,7 @@ done
 
 # parallel execution
 for T in "${Ts[@]}"; do
-  for N in "${test_list[@]}"; do
+  for N in "${Ns[@]}"; do
     echo "[\"PAR-T$T-N$N\"]" > "./logs/PAR-T$T-N$N.txt"           # create log file to save time values
     for ((i = 1; i <= exec_num; i++)); do
       random_seed=$(( (RANDOM % 1000) + 1 ))                      # generate random seed for the code
