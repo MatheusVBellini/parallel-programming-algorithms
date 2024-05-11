@@ -264,7 +264,7 @@ data_t calc_err(data_t *x0, data_t *x1) {
     omp_lock_t move_data;
     omp_init_lock(&move_data);
 
-    #pragma omp parallel num_threads(T) shared(xm1, x, xp1, e)
+    #pragma omp parallel num_threads(T) shared(xm1, x, xp1, e, converged)
     { 
       // first iteration
       #pragma omp for simd aligned(xm1, x, xp1: 32)
@@ -286,20 +286,48 @@ data_t calc_err(data_t *x0, data_t *x1) {
       // define task to calculate the error
       #pragma omp single
       {
+        // error checking
         #pragma omp task
         {
+          data_t ret;
           do {
             omp_set_lock(&move_data);
-            if (calc_err(xm1,x) <= e) {
+            ret = calc_err(xm1, x);
+            if (ret <= e) {
+              #pragma omp atomic write
               converged = 1;
-              #pragma omp flush
+              #pragma omp flush(converged)
             }
             omp_unset_lock(&move_data);
           } while(!converged);
         }
+        
+        // main loop
+        #pragma omp task
+        {
+
+          while (!converged) {
+            for (int i = 0; i < N; i++){
+              xp1[i] = normsys->b[i];
+            }
+            for (int i = 0; i < N; i++) {
+              for (int j = 0; j < N; j++) {
+                xp1[i] += normsys->A[i][j] * x[j];  // calculate x[k+1]
+              }
+            }
+            omp_set_lock(&move_data);
+            for (int i = 0; i < N; i++) {
+              xm1[i] = x[i];               // x[k] in x[k-1]
+              x[i] = xp1[i];               // x[k+1] in x[k]
+            }  
+            omp_unset_lock(&move_data);
+          }
+
+        }
       }
       
       // main loop
+        /*
       while(!converged) {
          
         #pragma omp for simd aligned(xm1, x, xp1: 32)
@@ -333,7 +361,7 @@ data_t calc_err(data_t *x0, data_t *x1) {
         }
         
         #pragma omp barrier
-      }
+      }*/
 
     }
     
