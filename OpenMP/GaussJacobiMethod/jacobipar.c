@@ -306,9 +306,9 @@ data_t *solve(LinSys *normsys, data_t *x, data_t e) {
             // main loop
             #pragma omp task
             {
-                #pragma omp parallel num_threads(T - 1) shared(xm1, x, xp1, converged)
-                {
-                    while (!converged) {
+                while (!converged) {
+                    #pragma omp parallel num_threads(T - 1) shared(xm1, x, xp1, converged)
+                    {
                         #pragma omp for simd aligned(xp1, normsys : MEM_ALIGN)
                         for (int i = 0; i < N; i++) {
                             xp1[i] = normsys->b[i];
