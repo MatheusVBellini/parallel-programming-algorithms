@@ -4,7 +4,7 @@
 #include <stdlib.h>
 #include <string.h>
 
-#define CLI_ARG_NUM 3
+#define CLI_ARG_NUM 2
 #define RAND_LIMIT 1000
 
 int N = 0;
@@ -296,9 +296,8 @@ void check_flags(char *argv[], int argc) {
 int main(int argc, char *argv[]) {
   // argument check
   if ((argc - 1) < CLI_ARG_NUM) {
-    printf("\nUsage: jacobiseq <N> <T> <seed> <flags>\n\n");
+    printf("\nUsage: jacobiseq <N> <seed> <flags>\n\n");
     printf("N -> Matrix Order\n");
-    printf("T -> Total number of threads in the application\n");
     printf("seed -> Seed for random number generations\n");
     printf("flags -> Additional flags for program configuration\n");
     exit(1);
