@@ -230,11 +230,17 @@ data_t *solve(LinSys *normsys, data_t *x, data_t e) {
   }
 
   // fill up for first interaction
-  memcpy(res, x, N * sizeof(data_t));
+  for (int i = 0; i < N; i++) {
+    res[i] = x[i];
+  }
 
   do {
-    memcpy(x, res, N * sizeof(data_t));
-    memcpy(res, normsys->b, N * sizeof(data_t));
+    for (int i = 0; i < N; i++) {
+      x[i] = res[i];
+    }
+    for (int i = 0; i < N; i++) {
+      res[i] = normsys->b[i];
+    }
     for (int i = 0; i < N; i++) {
       for (int j = 0; j < N; j++) {
         res[i] += normsys->A[i][j] * x[j];

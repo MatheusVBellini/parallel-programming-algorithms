@@ -11,7 +11,7 @@ OUT = $(OUT_PAR) $(OUT_SEQ)
 ZIP = ParallelGaussJacobi.zip
 
 # compilation flags
-FLAGS = -Wall -Wextra -pedantic -O3
+FLAGS = -Wall -Wextra -pedantic -O1
 
 all: seq par
 
@@ -23,10 +23,10 @@ clean:
 zip:
 	zip -r $(ZIP) * -x $(OUT)
 
-seq:	
+seq:
 	$(COMPILER) $(FLAGS) -o $(OUT_SEQ) $(IN_SEQ)
 
-par:	
+par:
 	$(COMPILER) $(FLAGS) -o $(OUT_PAR) $(IN_PAR) -fopenmp
 
 # dependecies: clang-format
@@ -35,4 +35,4 @@ format:
 
 # dependencies: cppcheck
 lint:
-	cppcheck $(IN) 
+	cppcheck $(IN)
