@@ -11,7 +11,7 @@ OUT = $(OUT_PAR) $(OUT_SEQ)
 ZIP = ParallelGaussJacobi.zip
 
 # compilation flags
-FLAGS = -Wall -Wextra -pedantic -O1
+FLAGS = -Wall -Wextra -pedantic -O2
 
 all: seq par
 
