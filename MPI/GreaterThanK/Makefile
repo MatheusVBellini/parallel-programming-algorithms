@@ -1,10 +1,11 @@
 # inputs and outputs
-CC   = mpicc
-SRC ?= token_ring.c
-OUT ?= $(basename $(SRC))
+CC    = mpicc
+SRC  ?= greater_than_k.c
+OUT  ?= $(basename $(SRC))
+FILE ?= input.txt
 
 # number of processes
-NP  ?= 1
+NP  ?= 2
 
 # compilation flags
 FLAGS = -Wall -Wextra -pedantic -O3
@@ -22,7 +23,7 @@ clean:
 	rm -f $(OUT)
 
 run:
-	mpirun -np $(NP) $(OUT)
+	mpirun -np $(NP) $(OUT) $(FILE)
 
 # dependecies: clang-format
 format:
