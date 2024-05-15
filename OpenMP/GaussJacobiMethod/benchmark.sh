@@ -46,3 +46,7 @@ done
 
 # clean folder
 make clean > /dev/null
+
+# python script
+pip install -r requirements.txt
+python stats.py

@@ -40,8 +40,16 @@ To change the compiler being used in the make statements, use
 make <statement> COMPILER=<custom compiler>
 ```
 
+To run benchmarks for comparison of performance of the codes and generate plots, use
+
+```
+./benchmark.sh
+```
+
+Note that it calls a python script, consider using a python environment for that.
+
 Below is the list of dependencies:
 - gcc            (replaceable with no guarantee)
 - clang-format   (dev)
 - cppcheck       (dev)
-
+- python dependencies specified in "requirements.txt"
