@@ -49,15 +49,16 @@ int main(int argc, char *argv[]) {
   if (myrank == 0) {
 
     int i = 0;
-    int recv;
+    int msg_size = (1 + size/(np-1));
+    int *recv = (int*)malloc(msg_size*sizeof(int));
 
     // collect indexes
     while (finished != np-1) {
-      MPI_Recv(&recv, 1, MPI_INT, MPI_ANY_SOURCE, 0, MPI_COMM_WORLD, &status); // receive index
-      if (recv >= 0)
-        index[i++] = recv;
-      else
-        finished++;
+      MPI_Recv(recv, msg_size, MPI_INT, MPI_ANY_SOURCE, 0, MPI_COMM_WORLD, &status); // receive index
+      // save received results
+      for (int j = 1; j <= recv[0]; j++)
+        index[i++] = recv[j];
+      finished++;
     }
 
     printf("Numbers of values greater than %d: %d\n", vec[K], i);
@@ -72,21 +73,31 @@ int main(int argc, char *argv[]) {
     }
     printf("]\n");
 
+    free(recv);
+
   } else {
     
     int inf = (myrank-1)*(size/(np-1));
     int sup = (myrank != np-1) ? (myrank)*(size/(np-1)) : size;
     int i;
-    for (i = inf; i < sup; i++) {
-      if (vec[i] > vec[K])
-        MPI_Send(&i, 1, MPI_INT, 0, 0, MPI_COMM_WORLD); // send to process 0
-    }
-    i = -1;
-    MPI_Send(&i, 1, MPI_INT, 0, 0, MPI_COMM_WORLD); // send end tag
 
+    int msg_size = (1 + size/(np-1));
+    int *msg = (int*)malloc(msg_size*sizeof(int)); // { size_of_array , index_1 , ... , index_size_of_array }
+    int aux_i = 1;
+    msg[0] = 0;
+    for (i = inf; i < sup; i++) {
+      if (vec[i] > vec[K]) {
+        msg[0]++;
+        msg[aux_i++] = i;
+      }
+    }
+    MPI_Send(msg, msg_size, MPI_INT, 0, 0, MPI_COMM_WORLD); // send index vector
+    free(msg);
   } 
 
   fflush(0);
+  free(vec);
+  free(index);
   if (MPI_Finalize() != MPI_SUCCESS)
     return 1;
 
