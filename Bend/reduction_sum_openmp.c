@@ -22,12 +22,16 @@ int *treefy(int first, int last) {
 
 int main() {
   int *tree, sum;
-  int lb = 1, ub = 9;
-  int size = 1+ub-lb;
-  tree = treefy(lb,ub);
-  sum = reduction_sum(tree,size);
-  printf("%d\n", sum);
+  int size;
 
-  free(tree);
+  for (int i = 2; i <= 2000; i++) {
+    size = i;
+    tree = treefy(1,i);
+    sum = reduction_sum(tree,size);
+    printf("%d ", sum);
+    free(tree);
+  }
+  printf("\n");
+
   return 0;
 }

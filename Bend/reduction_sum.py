@@ -17,7 +17,10 @@ def treefy(first, last):
     return node
 
 def main():
-    tree = treefy(1,9)
-    print(reduction_sum(tree))
+    sum = []
+    for i in range(2,2001,1):
+        tree = treefy(1,i)
+        sum += [reduction_sum(tree)]
+    print(sum)
 
 main()

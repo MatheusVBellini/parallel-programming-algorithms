@@ -46,9 +46,13 @@ TreeNode* treefy(int first, int last) {
 }
 
 int main() {
-  TreeNode* tree = treefy(1, 9);
-  printf("%d\n", reduction_sum(tree));
-  free_tree(tree); 
+  TreeNode* tree;
+  for (int i = 2; i <= 2000; i++) {
+    tree = treefy(1,i);
+    printf("%d ", reduction_sum(tree));
+    free_tree(tree); 
+  }
+  printf("\n");
   
   return 0;
 }

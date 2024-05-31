@@ -19,6 +19,11 @@ def treefy(first, last):
   return tree
 
 def main:
-  tree = treefy(1,9)
-  return reduction_sum(tree)
+  bend i = 0, inc = 2:
+    when i < 2000:
+      tree = treefy(1,inc)
+      sum = List/Cons { head: reduction_sum(tree) , tail: fork(i+1,inc+1) }
+    else:
+      sum = List/Nil
+  return sum
 
