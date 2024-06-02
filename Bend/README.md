@@ -1,0 +1,1 @@
+This folder was used to benchmark the automatic parallelism programming language Bend. To know more about it and support its developers, access the [original Bend repository](https://github.com/HigherOrderCO/Bend).

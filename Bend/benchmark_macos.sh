@@ -4,7 +4,7 @@ file_name="reduction_sum"
 exec_num=30
 
 # C - Default
-gcc -o exec -O2 "$file_name".c 
+clang -o exec -O2 "$file_name".c 
 file="./logs/c_default.txt"
 prompt="C_DEFAULT"
 if [[ -f "$file" ]]; then
@@ -13,14 +13,14 @@ else
   echo "Starting execution for $prompt"
   echo "$prompt" > "$file"
   for ((i = 1; i <= exec_num; i++)); do
-    t=$({ time ./exec } 2>&1 3>&1 >/dev/null | grep -oP '(?<= )[0-9]+\,[0-9]+(?= total)')      
+    t=$({ time ./exec } 2>&1 3>&1 >/dev/null | ggrep -oP '(?<= )[0-9]+\.[0-9]+(?= total)')      
     echo "$t" >> "$file"
   done
 fi
 rm exec
 
 # C - OpenMP
-gcc -o exec -O2 "$file_name"_openmp.c -fopenmp
+clang -o exec -O2 "$file_name"_openmp.c -fopenmp
 file="./logs/c_openmp.txt"
 prompt="C_OPENMP"
 if [[ -f "$file" ]]; then
@@ -29,7 +29,7 @@ else
   echo "Starting execution for $prompt"
   echo "$prompt" > "$file"
   for ((i = 1; i <= exec_num; i++)); do
-    t=$({ time ./exec } 2>&1 3>&1 >/dev/null | grep -oP '(?<= )[0-9]+\,[0-9]+(?= total)')      
+    t=$({ time ./exec } 2>&1 3>&1 >/dev/null | ggrep -oP '(?<= )[0-9]+\.[0-9]+(?= total)')      
     echo "$t" >> "$file"
   done
 fi
@@ -44,7 +44,7 @@ else
   echo "Starting execution for $prompt"
   echo "$prompt" > "$file"
   for ((i = 1; i <= exec_num; i++)); do
-    t=$({ time python3 "$file_name".py  } 2>&1 3>&1 >/dev/null | grep -oP '(?<= )[0-9]+\,[0-9]+(?= total)')      
+    t=$({ time python3 "$file_name".py  } 2>&1 3>&1 >/dev/null | ggrep -oP '(?<= )[0-9]+\.[0-9]+(?= total)')      
     echo "$t" >> "$file"
   done
 fi
@@ -58,7 +58,7 @@ else
   echo "Starting execution for $prompt"
   echo "$prompt" > "$file"
   for ((i = 1; i <= exec_num; i++)); do
-    t=$({ time bend run "$file_name".bend  } 2>&1 3>&1 >/dev/null | grep -oP '(?<= )[0-9]+\,[0-9]+(?= total)')      
+    t=$({ time bend run "$file_name".bend  } 2>&1 3>&1 >/dev/null | ggrep -oP '(?<= )[0-9]+\.[0-9]+(?= total)')      
     echo "$t" >> "$file"
   done
 fi
@@ -72,7 +72,7 @@ else
   echo "Starting execution for $prompt"
   echo "$prompt" > "$file"
   for ((i = 1; i <= exec_num; i++)); do
-    t=$({ time bend run-c "$file_name".bend  } 2>&1 3>&1 >/dev/null | grep -oP '(?<= )[0-9]+\,[0-9]+(?= total)')      
+    t=$({ time bend run-c "$file_name".bend  } 2>&1 3>&1 >/dev/null | ggrep -oP '(?<= )[0-9]+\.[0-9]+(?= total)')      
     echo "$t" >> "$file"
   done
 fi
@@ -86,7 +86,7 @@ else
   echo "Starting execution for $prompt"
   echo "$prompt" > "$file"
   for ((i = 1; i <= exec_num; i++)); do
-    t=$({ time bend run-cu "$file_name".bend  } 2>&1 3>&1 >/dev/null | grep -oP '(?<= )[0-9]+\,[0-9]+(?= total)')      
+    t=$({ time bend run-cu "$file_name".bend  } 2>&1 3>&1 >/dev/null | ggrep -oP '(?<= )[0-9]+\.[0-9]+(?= total)')      
     echo "$t" >> "$file"
   done
 fi
